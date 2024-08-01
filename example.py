@@ -221,5 +221,51 @@ param_options = [
 main('loan_data.csv', 'default', param_options, num_features=30, K=4)
 
 
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
+def process_features(train_df, val_df, test_df, numerical_features, categorical_features):
+    # Initialize the scaler and encoder
+    scaler = StandardScaler()
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    
+    # Fit on training data
+    scaler.fit(train_df[numerical_features])
+    encoder.fit(train_df[categorical_features])
+    
+    # Transform training data
+    train_numerical = scaler.transform(train_df[numerical_features])
+    train_categorical = encoder.transform(train_df[categorical_features])
+    
+    train_numerical = pd.DataFrame(train_numerical, columns=numerical_features, index=train_df.index)
+    train_categorical = pd.DataFrame(train_categorical, columns=encoder.get_feature_names_out(categorical_features), index=train_df.index)
+    
+    train_processed = pd.concat([train_numerical, train_categorical], axis=1)
+    
+    # Transform validation data
+    val_numerical = scaler.transform(val_df[numerical_features])
+    val_categorical = encoder.transform(val_df[categorical_features])
+    
+    val_numerical = pd.DataFrame(val_numerical, columns=numerical_features, index=val_df.index)
+    val_categorical = pd.DataFrame(val_categorical, columns=encoder.get_feature_names_out(categorical_features), index=val_df.index)
+    
+    val_processed = pd.concat([val_numerical, val_categorical], axis=1)
+    
+    # Transform test data
+    test_numerical = scaler.transform(test_df[numerical_features])
+    test_categorical = encoder.transform(test_df[categorical_features])
+    
+    test_numerical = pd.DataFrame(test_numerical, columns=numerical_features, index=test_df.index)
+    test_categorical = pd.DataFrame(test_categorical, columns=encoder.get_feature_names_out(categorical_features), index=test_df.index)
+    
+    test_processed = pd.concat([test_numerical, test_categorical], axis=1)
+    
+    return train_processed, val_processed, test_processed
+
+# Example usage
+# train_df, val_df, and test_df are pandas DataFrames containing the training, validation, and test data respectively
+# numerical_features is a list of names of numerical columns
+# categorical_features is a list of names of categorical columns
+# train_processed, val_processed, test_processed = process_features(train_df, val_df, test_df, numerical_features, categorical_features)
 
 
