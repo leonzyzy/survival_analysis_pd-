@@ -55,6 +55,61 @@ selected_features = backward_selection(data_df, 'duration', 'event')
 print("Selected features:", selected_features)
 
 # Fit the final model with selected features
+
+from lifelines import CoxPHFitter
+from lifelines.utils import concordance_index
+import numpy as np
+
+def tune_penalty_cox(train_df, validation_df, duration_col, event_col, penalty_values):
+    best_penalty = None
+    best_c_index = -1
+
+    for penalty in penalty_values:
+        # Fit the Cox model with the current penalty
+        cox_model = CoxPHFitter(penalizer=penalty)
+        cox_model.fit(train_df, duration_col=duration_col, event_col=event_col)
+
+        # Predict risk scores on the validation set
+        validation_durations = validation_df[duration_col]
+        validation_events = validation_df[event_col]
+        validation_risk_scores = cox_model.predict_partial_hazard(validation_df)
+
+        # Calculate the C-index on the validation set
+        c_index = concordance_index(validation_durations, -validation_risk_scores, validation_events)
+
+        print(f"Penalty: {penalty}, C-index: {c_index}")
+
+        # Update the best penalty if current C-index is higher
+        if c_index > best_c_index:
+            best_c_index = c_index
+            best_penalty = penalty
+
+    print(f"Best penalty: {best_penalty}, Best C-index: {best_c_index}")
+    return best_penalty
+
+# Example usage
+train_df = ...  # Your training dataframe with 'duration' and 'event' columns
+validation_df = ...  # Your validation dataframe with 'duration' and 'event' columns
+duration_col = 'duration'
+event_col = 'event'
+penalty_values = np.logspace(-4, 4, 50)  # Example range of penalty values
+
+best_penalty = tune_penalty_cox(train_df, validation_df, duration_col, event_col, penalty_values)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 final_cox_model = CoxPHFitter()
 final_cox_model.fit(data_df[selected_features + ['duration', 'event']], duration_col='duration', event_col='event')
 print(final_cox_model.summary)
