@@ -1,37 +1,12 @@
-# Ensure the indices of the baseline hazard and hazard ratios align
-baseline_hazard = baseline_hazard.reset_index()
-baseline_hazard.columns = ['timeline', 'baseline_hazard']
+survival_function = pd.DataFrame(index=hazard_rates.index, columns=hazard_rates.columns)
 
-# Create a DataFrame for the individual hazard rates
-individual_hazard_rates = pd.DataFrame()
+# Compute the survival function for each individual
+for column in hazard_rates.columns:
+    cumulative_hazard = hazard_rates[column].cumsum()
+    survival_function[column] = np.exp(-cumulative_hazard)
 
-for i in range(len(new_data)):
-    # Multiply the baseline hazard by the individual's hazard ratio
-    individual_hazard_rate = baseline_hazard.copy()
-    individual_hazard_rate['individual_hazard'] = individual_hazard_rate['baseline_hazard'] * hazard_ratios.iloc[i, 0]
-    individual_hazard_rate['individual'] = i
-    individual_hazard_rates = pd.concat([individual_hazard_rates, individual_hazard_rate])
+print("Survival Function:")
+print(survival_function)
 
-print("Individual Hazard Rates at Each Time Point:")
-print(individual_hazard_rates)
-
-# Find the top 5 minimal hazard rates for each loan
-top_5_minimal_hazard_rates = {}
-
-for loan in individual_hazard_rates_df.columns:
-    top_5 = individual_hazard_rates_df[loan].nsmallest(5)
-    top_5_minimal_hazard_rates[loan] = top_5
-
-# Convert the dictionary to a DataFrame for better visualization
-top_5_minimal_hazard_rates_df = pd.DataFrame(top_5_minimal_hazard_rates)
-
-print("\nTop 5 Time Points with Minimal Hazard Rates for Each Loan:")
-print(top_5_minimal_hazard_rates_df)
-
-# Rename columns to 'loan1', 'loan2', ..., 'loan9399'
-num_columns = individual_hazard_rates_df.shape[1]
-new_column_names = [f"loan{i+1}" for i in range(num_columns)]
-individual_hazard_rates_df.columns = new_column_names
-
-print("Individual Hazard Rates at Each Time Point:")
-print(individual_hazard_rates_df)
+# Calculate the probability of default
+probability_of_default = 1 - survival_function
