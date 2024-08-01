@@ -151,16 +151,15 @@ c_index = compute_c_index_on_test_set(test_df, duration_col, event_col, final_co
 
 
 
+def compute_survival_probabilities(test_df, duration_col, event_col, final_cox_model):
+    # Compute the survival function for each observation in the test set
+    survival_functions = final_cox_model.predict_survival_function(test_df)
 
+    # Convert survival functions to a DataFrame
+    survival_probabilities = pd.DataFrame({
+        'id': test_df.index,  # or use another unique identifier for each observation
+        'survival_function': [sf.values for sf in survival_functions]
+    })
 
-
-
-
-
-
-
-
-
-final_cox_model = CoxPHFitter()
-final_cox_model.fit(data_df[selected_features + ['duration', 'event']], duration_col='duration', event_col='event')
-print(final_cox_model.summary)
+    print("Survival probabilities:\n", survival_probabilities)
+    return survival_probabilities
