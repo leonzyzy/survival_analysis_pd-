@@ -62,8 +62,56 @@ def split_data_by_loan(X_df, test_size=0.2, val_size=0.25, random_state=42):
     
     return X_train, X_val, X_test
 
-# Example usage
-df = create_synthetic_data_with_categorical(n_loans=100, n_entries_per_loan=10, n_features=20)
-X_train, X_val, X_test = split_data_by_loan(df, test_size=0.2, val_size=0.25)
 
-X_val
+def process_features(train_df, val_df, test_df, categorical_features, numerical_features):
+    """
+    Process categorical and numerical features for train, validation, and test datasets.
+
+    Parameters:
+    - train_df (pd.DataFrame): Training data.
+    - val_df (pd.DataFrame): Validation data.
+    - test_df (pd.DataFrame): Test data.
+    - categorical_features (list): List of column names for categorical features.
+    - numerical_features (list): List of column names for numerical features.
+
+    Returns:
+    - pd.DataFrame: Processed training data.
+    - pd.DataFrame: Processed validation data.
+    - pd.DataFrame: Processed test data.
+    """
+
+    # Create transformers for numerical and categorical data
+    numerical_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore', sparse=False)
+
+    # Create a column transformer to apply transformations
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ],
+        remainder='passthrough'
+    )
+
+    # Fit and transform the training data
+    train_processed = preprocessor.fit_transform(train_df)
+    val_processed = preprocessor.transform(val_df)
+    test_processed = preprocessor.transform(test_df)
+
+    # Convert the transformed data back to DataFrame
+    # Get feature names for the transformed data
+    num_features = numerical_features
+    cat_features = preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_features)
+    all_features = num_features + list(cat_features)
+    
+    train_df_processed = pd.DataFrame(train_processed, columns=all_features)
+    val_df_processed = pd.DataFrame(val_processed, columns=all_features)
+    test_df_processed = pd.DataFrame(test_processed, columns=all_features)
+
+    return train_df_processed, val_df_processed, test_df_processed
+
+
+
+
+
+
