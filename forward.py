@@ -96,6 +96,57 @@ penalty_values = np.logspace(-4, 4, 50)  # Example range of penalty values
 
 best_penalty = tune_penalty_cox(train_df, validation_df, duration_col, event_col, penalty_values)
 
+from lifelines import CoxPHFitter
+from lifelines.utils import concordance_index
+
+def fit_initial_model_and_get_significant_features(train_df, duration_col, event_col, p_value_threshold=0.05):
+    # Fit the initial Cox model
+    initial_cox_model = CoxPHFitter()
+    initial_cox_model.fit(train_df, duration_col=duration_col, event_col=event_col)
+
+    # Get the summary
+    summary = initial_cox_model.summary
+    print("Initial model summary:\n", summary)
+
+    # Select significant features
+    significant_features = summary[summary['p'] < p_value_threshold].index.tolist()
+    print("Significant features:", significant_features)
+    
+    return significant_features
+
+def fit_final_model_with_significant_features(train_df, duration_col, event_col, significant_features):
+    # Fit the final Cox model with significant features
+    final_cox_model = CoxPHFitter()
+    final_cox_model.fit(train_df[significant_features + [duration_col, event_col]], duration_col=duration_col, event_col=event_col)
+    print("Final model summary:\n", final_cox_model.summary)
+    
+    return final_cox_model
+
+def compute_c_index_on_test_set(test_df, duration_col, event_col, final_cox_model):
+    # Predict risk scores on the test set
+    test_durations = test_df[duration_col]
+    test_events = test_df[event_col]
+    test_risk_scores = final_cox_model.predict_partial_hazard(test_df)
+
+    # Calculate the C-index on the test set
+    c_index = concordance_index(test_durations, -test_risk_scores, test_events)
+    print(f"Test C-index: {c_index}")
+    return c_index
+
+# Example usage
+train_df = ...  # Your training dataframe with 'duration' and 'event' columns
+test_df = ...   # Your testing dataframe with 'duration' and 'event' columns
+duration_col = 'duration'
+event_col = 'event'
+
+# Step 1: Fit initial model and get significant features
+significant_features = fit_initial_model_and_get_significant_features(train_df, duration_col, event_col)
+
+# Step 2: Fit final model with significant features
+final_cox_model = fit_final_model_with_significant_features(train_df, duration_col, event_col, significant_features)
+
+# Step 3: Compute C-index on the testing set
+c_index = compute_c_index_on_test_set(test_df, duration_col, event_col, final_cox_model)
 
 
 
