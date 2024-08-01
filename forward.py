@@ -27,3 +27,11 @@ top_5_minimal_hazard_rates_df = pd.DataFrame(top_5_minimal_hazard_rates)
 
 print("\nTop 5 Time Points with Minimal Hazard Rates for Each Loan:")
 print(top_5_minimal_hazard_rates_df)
+
+# Rename columns to 'loan1', 'loan2', ..., 'loan9399'
+num_columns = individual_hazard_rates_df.shape[1]
+new_column_names = [f"loan{i+1}" for i in range(num_columns)]
+individual_hazard_rates_df.columns = new_column_names
+
+print("Individual Hazard Rates at Each Time Point:")
+print(individual_hazard_rates_df)
