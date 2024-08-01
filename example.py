@@ -63,22 +63,24 @@ def split_data_by_loan(X_df, test_size=0.2, val_size=0.25, random_state=42):
     return X_train, X_val, X_test
 
 
-def process_features(train_df, val_df, test_df, categorical_features, numerical_features):
+def process_features(train_df, val_df, test_df):
     """
-    Process categorical and numerical features for train, validation, and test datasets.
+    Automatically process categorical and numerical features for train, validation, and test datasets.
 
     Parameters:
     - train_df (pd.DataFrame): Training data.
     - val_df (pd.DataFrame): Validation data.
     - test_df (pd.DataFrame): Test data.
-    - categorical_features (list): List of column names for categorical features.
-    - numerical_features (list): List of column names for numerical features.
 
     Returns:
     - pd.DataFrame: Processed training data.
     - pd.DataFrame: Processed validation data.
     - pd.DataFrame: Processed test data.
     """
+    
+    # Identify numerical and categorical features
+    numerical_features = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = train_df.select_dtypes(include=['object', 'category']).columns.tolist()
 
     # Create transformers for numerical and categorical data
     numerical_transformer = StandardScaler()
@@ -109,8 +111,6 @@ def process_features(train_df, val_df, test_df, categorical_features, numerical_
     test_df_processed = pd.DataFrame(test_processed, columns=all_features)
 
     return train_df_processed, val_df_processed, test_df_processed
-
-
 
 
 
