@@ -112,6 +112,114 @@ def process_features(train_df, val_df, test_df):
 
     return train_df_processed, val_df_processed, test_df_processed
 
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+import numpy as np
+
+# Step 1: Data Preparation
+def load_and_split_data(file_path, target_column, test_size=0.3, val_size=0.5, random_state=42):
+    data = pd.read_csv(file_path)
+    X = data.drop(columns=[target_column])
+    y = data[target_column]
+    
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=val_size, random_state=random_state)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+# Step 2: Feature Selection with XGBoost
+def select_features_with_xgboost(X_train, y_train, params):
+    xgb = XGBClassifier(**params)
+    xgb.fit(X_train, y_train)
+    importances = xgb.feature_importances_
+    features = X_train.columns
+    important_features = pd.Series(importances, index=features).nlargest(30).index
+    return important_features
+
+# Step 3: Logistic Regression with L1 Regularization
+def train_logistic_regression_models(X_train, y_train, important_features, K, penalty='l1', solver='liblinear', max_iter=1000):
+    quarterly_models = {}
+    for quarter in range(1, K + 1):
+        lr = LogisticRegression(penalty=penalty, solver=solver, max_iter=max_iter)
+        X_train_quarter = X_train[important_features]
+        lr.fit(X_train_quarter, y_train)
+        quarterly_models[quarter] = lr
+    return quarterly_models
+
+# Step 4: Compute Cumulative Probability of Default
+def compute_cumulative_probability(models, X, important_features):
+    probabilities = []
+    for quarter, model in models.items():
+        prob = model.predict_proba(X[important_features])[:, 1]
+        probabilities.append(prob)
+    cum_prob = 1 - np.prod([(1 - p) for p in probabilities], axis=0)
+    return cum_prob
+
+# Step 5: Model Evaluation
+def evaluate_model(y_true, y_pred):
+    auc = roc_auc_score(y_true, y_pred)
+    return auc
+
+# Step 6: Linear Search for Hyperparameter Tuning
+def linear_search_xgboost_lr(file_path, target_column, param_options, num_features=30, K=4):
+    # Load and split data
+    X_train, X_val, X_test, y_train, y_val, y_test = load_and_split_data(file_path, target_column)
+    
+    best_auc = 0
+    best_params = None
+    best_models = None
+    best_features = None
+    
+    for params in param_options:
+        # Feature selection with XGBoost
+        important_features = select_features_with_xgboost(X_train, y_train, params)
+        
+        # Train Logistic Regression models
+        quarterly_models = train_logistic_regression_models(X_train, y_train, important_features, K)
+        
+        # Compute cumulative probability on validation set
+        y_val_pred = compute_cumulative_probability(quarterly_models, X_val, important_features)
+        
+        # Evaluate model
+        auc = evaluate_model(y_val, y_val_pred)
+        
+        if auc > best_auc:
+            best_auc = auc
+            best_params = params
+            best_models = quarterly_models
+            best_features = important_features
+    
+    print(f'Best AUC on Validation Set: {best_auc}')
+    print(f'Best Parameters: {best_params}')
+    
+    return best_models, best_features, best_params, X_test, y_test
+
+# Step 7: Final Evaluation on Test Set
+def evaluate_on_test_set(X_test, y_test, best_models, best_features):
+    y_test_pred = compute_cumulative_probability(best_models, X_test, best_features)
+    auc = evaluate_model(y_test, y_test_pred)
+    print(f'Test AUC: {auc}')
+    return auc
+
+# Main function to run all steps
+def main(file_path, target_column, param_options, num_features=30, K=4):
+    best_models, best_features, best_params, X_test, y_test = linear_search_xgboost_lr(file_path, target_column, param_options, num_features, K)
+    evaluate_on_test_set(X_test, y_test, best_models, best_features)
+
+# Example Usage
+param_options = [
+    {'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8, 'colsample_bytree': 0.8},
+    {'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 100, 'subsample': 0.9, 'colsample_bytree': 0.9},
+    {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50, 'subsample': 0.8, 'colsample_bytree': 0.8},
+    {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 100, 'subsample': 0.9, 'colsample_bytree': 0.9},
+    # Add more parameter combinations here
+]
+
+main('loan_data.csv', 'default', param_options, num_features=30, K=4)
+
 
 
 
