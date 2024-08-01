@@ -14,3 +14,16 @@ for i in range(len(new_data)):
 
 print("Individual Hazard Rates at Each Time Point:")
 print(individual_hazard_rates)
+
+# Find the top 5 minimal hazard rates for each loan
+top_5_minimal_hazard_rates = {}
+
+for loan in individual_hazard_rates_df.columns:
+    top_5 = individual_hazard_rates_df[loan].nsmallest(5)
+    top_5_minimal_hazard_rates[loan] = top_5
+
+# Convert the dictionary to a DataFrame for better visualization
+top_5_minimal_hazard_rates_df = pd.DataFrame(top_5_minimal_hazard_rates)
+
+print("\nTop 5 Time Points with Minimal Hazard Rates for Each Loan:")
+print(top_5_minimal_hazard_rates_df)
