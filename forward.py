@@ -191,3 +191,24 @@ baseline_hazard_df = cox_model.baseline_hazard_
 hazard_function = compute_hazard_function(cox_model, test_df, baseline_hazard_df)
 print("Hazard function for the test set:\n", hazard_function)
 
+
+# Compute the baseline survival function
+baseline_survival = cox_model.baseline_survival_
+
+# Convert risk scores to survival probabilities
+from lifelines import utils
+
+def get_survival_probabilities(risk_scores, baseline_survival):
+    # Compute survival probabilities
+    survival_probabilities = {}
+    for index, score in enumerate(risk_scores):
+        survival_prob = utils.exponential_power(baseline_survival, -score)
+        survival_probabilities[index] = survival_prob
+    
+    return survival_probabilities
+
+survival_probabilities = get_survival_probabilities(risk_scores, baseline_survival)
+# Convert survival probabilities to default probabilities
+default_probabilities = {k: 1 - v for k, v in survival_probabilities.items()}
+print("Default Probabilities:\n", default_probabilities)
+
