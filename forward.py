@@ -163,3 +163,31 @@ def compute_survival_probabilities(test_df, duration_col, event_col, final_cox_m
 
     print("Survival probabilities:\n", survival_probabilities)
     return survival_probabilities
+
+
+
+
+from lifelines import CoxPHFitter
+from lifelines import KaplanMeierFitter
+
+def compute_hazard_function(model, data_df, baseline_hazard_df):
+    # Predict hazard ratios
+    hazard_ratios = model.predict_partial_hazard(data_df)
+    
+    # Compute the baseline hazard function
+    baseline_hazard = model.baseline_hazard_
+    
+    # Calculate the hazard function
+    hazard_function = pd.DataFrame(index=data_df.index)
+    for time in baseline_hazard.index:
+        hazard_function[time] = baseline_hazard.loc[time] * hazard_ratios
+    
+    return hazard_function
+
+# Compute baseline hazard
+baseline_hazard_df = cox_model.baseline_hazard_
+
+# Compute hazard function for the test set
+hazard_function = compute_hazard_function(cox_model, test_df, baseline_hazard_df)
+print("Hazard function for the test set:\n", hazard_function)
+
