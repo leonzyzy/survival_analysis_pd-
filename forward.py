@@ -38,3 +38,46 @@ for column in hazard_rates.columns:
 
 print("Survival Probabilities:")
 print(survival_probabilities)
+
+
+
+from lifelines import KaplanMeierFitter
+from sklearn.metrics import roc_auc_score
+import numpy as np
+
+def time_dependent_auc(data, time_point):
+    # Kaplan-Meier survival function for the observed data
+    kmf = KaplanMeierFitter()
+    kmf.fit(durations=data['duration'], event_observed=data['event'])
+    
+    # Survival probabilities at the specified time point
+    survival_probs = kmf.survival_function_at_times(time_point).values.flatten()
+    
+    # Create a DataFrame with predicted risk scores and event indicators
+    df = pd.DataFrame({
+        'predicted_risk': data['predicted_risk'],
+        'event': data['event'],
+        'survival_prob': survival_probs
+    })
+    
+    # Sort by predicted risk scores
+    df = df.sort_values(by='predicted_risk', ascending=False)
+    
+    # Compute AUC for the sorted DataFrame
+    auc = roc_auc_score(df['event'], df['predicted_risk'])
+    return auc
+
+# Define time points at which to compute the AUC
+time_points = np.arange(0, 30, 5)
+
+# Compute AUC for each time point
+auc_scores = {time: time_dependent_auc(data, time) for time in time_points}
+
+# Display results
+for time, auc in auc_scores.items():
+    print(f'Time: {time}, AUC: {auc:.4f}')
+
+
+
+
+
