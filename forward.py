@@ -31,4 +31,45 @@ auc_scores = {date: time_dependent_auc(test_data, date) for date in time_points_
 
 # Display results
 for date, auc in auc_scores.items():
-    print(f'Time Point: {date.strftime("%Y-%m-%d")}, AUC: {auc:.4f}')
+    print(f'Time Point: {date.strftime("%Y-%m-%d")}, AUC: {auc:.import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+from sklearn.datasets import make_classification
+
+# Set seed for reproducibility
+np.random.seed(42)
+
+# Generate synthetic data
+n_samples = 9399
+X, y = make_classification(n_samples=n_samples, n_features=20, n_classes=2, n_clusters_per_class=1, flip_y=0.3, random_state=42)
+
+# Simulate predicted probabilities (for simplicity, use a logistic regression model here)
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression()
+model.fit(X, y)
+y_scores = model.predict_proba(X)[:, 1]
+
+# Compute ROC curve and AUC
+fpr, tpr, thresholds = roc_curve(y, y_scores)
+roc_auc = auc(fpr, tpr)
+
+# Adjust AUC if necessary
+desired_auc = 0.70
+if np.isclose(roc_auc, desired_auc, atol=0.01):
+    print(f"AUC is approximately {roc_auc:.2f}, which is close to the desired AUC of {desired_auc:.2f}.")
+else:
+    print(f"AUC is {roc_auc:.2f}, which may not be exactly the desired AUC of {desired_auc:.2f}.")
+
+# Plot ROC Curve
+plt.figure()
+plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc='lower right')
+plt.show()
+
+
